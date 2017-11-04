@@ -27,50 +27,51 @@ func (e *Error) Stack() string {
 	return fmt.Sprintf("(%s) %s\tStack: %s", e.Position, e.Message, e.StackTrace)
 }
 
-func NewError(err interface{}, code ...int) *Error {
-	return newError(err, code...)
-}
+func NewError(e interface{}, a ...interface{}) *Error {
+	err := new(Error)
 
-func NewErrorWithTag(tag string, err interface{}, code ...int) *Error {
-	e := newError(err, code...)
-	if len(tag) > 0 {
-		e.Tag = tag
-	}
-	return e
-}
-
-func newError(err interface{}, code ...int) *Error {
-	e := new(Error)
-	// e.Code
-	if len(code) > 0 {
-		e.Code = code[0]
-	}
-
-	// e.Message
-	var message string
-	switch e := err.(type) {
+	// err.Message
+	var msg string
+	switch t := e.(type) {
 	case *Error:
-		return e
-	case string:
-		message = e
+		return t
 	case error:
-		message = e.Error()
+		msg = t.Error()
+	case string:
+		if len(a) > 0 {
+			msg = fmt.Sprintf(t, a...)
+		} else {
+			msg = t
+		}
 	default:
-		message = fmt.Sprintf("%v", e)
+		msg = fmt.Sprintf("%v", t)
 	}
-	e.Message = message
+	err.Message = msg
 
-	// e.Position
+	// err.Position
 	_, file, line, ok := runtime.Caller(2)
 	if ok {
-		e.Position = filepath.Base(file) + ":" + strconv.Itoa(line)
+		err.Position = filepath.Base(file) + ":" + strconv.Itoa(line)
 	}
 
-	// e.StackTrace
+	// err.StackTrace
 	const size = 1 << 12
 	buf := make([]byte, size)
 	n := runtime.Stack(buf, false)
-	e.StackTrace = string(buf[:n])
+	err.StackTrace = string(buf[:n])
 
-	return e
+	return err
+}
+
+func NewTagError(tag string, e interface{}, a ...interface{}) *Error {
+	err := NewError(e, a...)
+	err.Tag = tag
+	return err
+}
+
+func NewTagCodeError(tag string, code int, e interface{}, a ...interface{}) *Error {
+	err := NewError(e, a...)
+	err.Tag = tag
+	err.Code = code
+	return err
 }
