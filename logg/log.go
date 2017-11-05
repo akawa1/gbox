@@ -114,3 +114,7 @@ func level(lvl byte) l4g.Level {
 		return l4g.CRITICAL
 	}
 }
+
+func Close() {
+	logger.Close()
+}
